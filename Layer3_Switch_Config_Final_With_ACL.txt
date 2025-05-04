@@ -1,0 +1,126 @@
+! ======================================
+! Final Layer 3 Switch Configuration
+! ======================================
+
+hostname MSN-ML1
+!
+ip routing
+
+! VLANs
+vlan 10
+ name Dev_VLAN
+vlan 11
+ name Finance_VLAN
+vlan 12
+ name IT_VLAN
+vlan 13
+ name Sales_VLAN
+vlan 14
+ name Support_VLAN
+vlan 15
+ name Cafeteria_VLAN
+vlan 20
+ name Wireless_Guest
+vlan 40
+ name Voice
+exit
+
+! Trunks & EtherChannel
+interface range GigabitEthernet1/0/1 - 15
+ switchport trunk allowed vlan 10,11,12,13,14,15,20,40
+ switchport mode trunk
+exit
+
+interface range GigabitEthernet1/0/16-18
+ channel-group 1 mode active
+exit
+
+interface Port-channel1
+ switchport trunk allowed vlan 10,11,12,13,14,15,20,40
+ switchport mode trunk
+ no shutdown
+exit
+
+! Access Interfaces
+interface GigabitEthernet1/0/22
+ switchport access vlan 40
+ switchport mode access
+ no shutdown
+exit
+
+interface GigabitEthernet1/0/23
+ switchport access vlan 20
+ switchport mode access
+ no shutdown
+exit
+
+interface GigabitEthernet1/0/24
+ no switchport
+ ip address 192.168.100.33 255.255.255.252
+ no shutdown
+exit
+
+! VLAN Interfaces (SVI)
+interface Vlan11
+ ip address 192.168.11.2 255.255.255.0
+ ip helper-address 192.168.100.10
+ ip helper-address 192.168.100.11
+ standby 11 ip 192.168.11.1
+ standby 11 priority 120
+ standby 11 preempt
+ ip access-group BLOCK-FINANCE in
+exit
+
+interface Vlan13
+ ip address 192.168.13.2 255.255.255.0
+ standby 13 ip 192.168.13.1
+ standby 13 priority 120
+ standby 13 preempt
+ ip access-group BLOCK-SALES in
+exit
+
+interface Vlan20
+ ip address 192.168.20.2 255.255.255.0
+ standby 2 ip 192.168.20.1
+ standby 2 priority 120
+ standby 2 preempt
+ ip access-group BLOCK-GUEST in
+exit
+
+! ACLs
+ip access-list extended BLOCK-FINANCE
+ deny ip 192.168.11.0 0.0.0.255 192.168.10.0 0.0.0.255
+ deny ip 192.168.11.0 0.0.0.255 192.168.12.0 0.0.0.255
+ permit ip any any
+exit
+
+ip access-list extended BLOCK-SALES
+ deny ip 192.168.13.0 0.0.0.255 192.168.0.0 0.0.255.255
+ permit ip 192.168.13.0 0.0.0.255 any eq 80
+ permit ip 192.168.13.0 0.0.0.255 any eq 443
+exit
+
+ip access-list extended BLOCK-GUEST
+ deny ip 192.168.20.0 0.0.0.255 192.168.0.0 0.0.255.255
+ permit ip 192.168.20.0 0.0.0.255 any eq 80
+ permit ip 192.168.20.0 0.0.0.255 any eq 443
+exit
+
+! OSPF
+router ospf 1
+ router-id 1.1.1.1
+ log-adjacency-changes
+ network 192.168.10.0 0.0.0.255 area 0
+ network 192.168.11.0 0.0.0.255 area 0
+ network 192.168.12.0 0.0.0.255 area 0
+ network 192.168.13.0 0.0.0.255 area 0
+ network 192.168.14.0 0.0.0.255 area 0
+ network 192.168.15.0 0.0.0.255 area 0
+ network 192.168.20.0 0.0.0.255 area 0
+ network 192.168.40.0 0.0.0.255 area 0
+ network 192.168.100.32 0.0.0.3 area 0
+ network 192.168.100.36 0.0.0.3 area 0
+exit
+
+! Save configuration
+wr memory

@@ -1,0 +1,97 @@
+! ================================
+! Final ASA Firewall Configuration
+! ================================
+
+hostname MSN-Firewall
+!
+interface GigabitEthernet1/2
+ nameif to-switch
+ security-level 100
+ ip address 192.168.100.34 255.255.255.252
+!
+interface GigabitEthernet1/3
+ nameif inside-2
+ security-level 100
+ ip address 192.168.100.38 255.255.255.252
+!
+interface GigabitEthernet1/4
+ nameif to-l2-switch
+ security-level 50
+ ip address 192.168.100.1 255.255.255.224
+!
+interface range GigabitEthernet1/5 - 1/8
+ no nameif
+ no security-level
+ no ip address
+ shutdown
+!
+interface Management1/1
+ management-only
+ no nameif
+ no security-level
+ no ip address
+ shutdown
+
+! ========== ACL Definitions ==========
+
+! DHCP
+access-list ALLOW-DHCP extended permit udp any host 192.168.100.10 eq bootps
+access-list ALLOW-DHCP extended permit udp host 192.168.100.10 eq bootpc any
+access-list ALLOW-DHCP extended permit udp any host 192.168.100.11 eq bootps
+access-list ALLOW-DHCP extended permit udp host 192.168.100.11 eq bootpc any
+
+! VPN Split Tunnel (Dev Only)
+access-list VPN_SPLIT extended permit tcp any host 192.168.10.9 eq 443
+access-list VPN_SPLIT extended deny ip any 192.168.11.0 255.255.255.0
+access-list VPN_SPLIT extended deny ip any 192.168.13.0 255.255.255.0
+
+! General Internal Access Rules
+access-list INSIDE_ACCESS extended deny ip 192.168.11.0 255.255.255.0 192.168.10.0 255.255.255.0
+access-list INSIDE_ACCESS extended deny ip 192.168.11.0 255.255.255.0 192.168.12.0 255.255.255.0
+access-list INSIDE_ACCESS extended deny ip 192.168.13.0 255.255.255.0 any
+access-list INSIDE_ACCESS extended permit ip 192.168.10.0 255.255.255.0 host 192.168.10.9
+access-list INSIDE_ACCESS extended permit ip 192.168.12.0 255.255.255.0 any
+access-list INSIDE_ACCESS extended permit ip 192.168.11.0 255.255.255.0 host 192.168.100.20
+access-list INSIDE_ACCESS extended permit ip any any
+
+! Apply ACLs to Interfaces
+access-group INSIDE_ACCESS in interface inside-2
+access-group ALLOW-INSIDE in interface to-switch
+access-group ALLOW-INSIDE in interface to-l2-switch
+
+! Inspection Policies
+class-map inspection_default
+ match default-inspection-traffic
+
+policy-map type inspect dns preset_dns_map
+ parameters
+  message-length maximum 512
+
+policy-map global_policy
+ class inspection_default
+  inspect dns preset_dns_map
+  inspect ftp
+  inspect tftp
+
+service-policy global_policy global
+
+! Logging
+logging enable
+logging trap informational
+logging host inside-2 192.168.12.100
+
+! OSPF Routing
+router ospf 1
+ router-id 3.3.3.3
+ log-adjacency-changes
+ redistribute connected subnets
+ network 192.168.100.0 255.255.255.224 area 0
+ network 192.168.100.32 255.255.255.252 area 0
+ network 192.168.100.36 255.255.255.252 area 0
+
+! Timeouts
+telnet timeout 5
+ssh timeout 5
+
+! Save config
+write memory
