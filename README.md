@@ -29,7 +29,6 @@ This project simulates a production-ready, layered-security architecture that in
 | `Firewall_Config_Final_With_ACL.txt`   | ASA Firewall configuration (with ACL rules) |
 | `Layer3_Switch_Config_Final_With_ACL.txt` | L3 Core switch configuration |
 | `Final Project - CIS-221.pdf`          | Full writeup report with figures & topology |
-| `Network_Forensics.pdf`                | Inspiration from Talia Q’s network forensics labs |
 
 ---
 
